@@ -19,6 +19,26 @@ const sendBtn = document.getElementById('sendBtn');
 
 let isLogin = true;
 
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  const installBtn = document.createElement('button');
+  installBtn.textContent = 'Install Chat App';
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener('click', () => {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') console.log('App installed');
+      deferredPrompt = null;
+      installBtn.remove();
+    });
+  });
+});
+
+
 // Toggle Login/Register Form
 function toggleForm(e) {
   if (e) e.preventDefault();
