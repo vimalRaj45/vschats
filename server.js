@@ -222,8 +222,8 @@ io.on('connection', (socket) => {
   });
 });
 
-// Serve frontend for all routes
-app.get('*', (req, res) => {
+// With this ✅
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
