@@ -24,7 +24,7 @@ webpush.setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 
-// PostgreSQL (NeonDB) Pool
+// PostgreSQL Pool
 const pool = new Pool({
   connectionString: "postgresql://neondb_owner:npg_ZS1hyJvEkRL9@ep-holy-pond-adhxy251-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
   ssl: { rejectUnauthorized: false }
@@ -106,15 +106,36 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// PUSH NOTIFICATIONS
+// SUBSCRIBE PUSH NOTIFICATIONS
 app.post('/api/subscribe', authenticateToken, async (req, res) => {
   try {
-    await pool.query(
-      'UPDATE users SET push_subscription = $1 WHERE id = $2',
-      [req.body.subscription, req.user.id]
+    const subscription = req.body.subscription;
+
+    // Ensure user_push_subscriptions table exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id),
+        subscription JSONB NOT NULL
+      )
+    `);
+
+    // Check for duplicate
+    const existing = await pool.query(
+      'SELECT * FROM user_push_subscriptions WHERE user_id = $1 AND subscription = $2',
+      [req.user.id, subscription]
     );
+
+    if (!existing.rows.length) {
+      await pool.query(
+        'INSERT INTO user_push_subscriptions(user_id, subscription) VALUES($1, $2)',
+        [req.user.id, subscription]
+      );
+    }
+
     res.json({ success: true });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: 'Subscription failed' });
   }
 });
@@ -167,51 +188,54 @@ io.on('connection', (socket) => {
   userSockets.set(socket.user.id, socket.id);
 
   socket.on('send_message', async (data) => {
-  try {
-    const result = await pool.query(
-      'INSERT INTO messages(sender_id, receiver_id, content) VALUES($1, $2, $3) RETURNING *',
-      [socket.user.id, data.receiverId, data.content]
-    );
-    const message = result.rows[0];
+    try {
+      const result = await pool.query(
+        'INSERT INTO messages(sender_id, receiver_id, content) VALUES($1, $2, $3) RETURNING *',
+        [socket.user.id, data.receiverId, data.content]
+      );
+      const message = result.rows[0];
 
-    // Send to sender
-    socket.emit('message', { ...message, sender_name: socket.user.username, isOwn: true });
+      // Send to sender
+      socket.emit('message', { ...message, sender_name: socket.user.username, isOwn: true });
 
-    // Send to receiver via socket if online
-    const receiverSocket = userSockets.get(data.receiverId);
-    if (receiverSocket) {
-      io.to(receiverSocket).emit('message', { ...message, sender_name: socket.user.username, isOwn: false });
+      // Send to receiver via socket if online
+      const receiverSocket = userSockets.get(data.receiverId);
+      if (receiverSocket) {
+        io.to(receiverSocket).emit('message', { ...message, sender_name: socket.user.username, isOwn: false });
+      }
+
+      // Send push notification to all subscriptions of receiver
+      const subs = await pool.query(
+        'SELECT subscription FROM user_push_subscriptions WHERE user_id = $1',
+        [data.receiverId]
+      );
+
+      subs.rows.forEach(s => {
+        webpush.sendNotification(
+          s.subscription,
+          JSON.stringify({
+            title: 'New Message',
+            body: `${socket.user.username}: ${data.content.substring(0, 30)}...`,
+            icon: '/icon-192x192.png'
+          })
+        ).catch(err => console.error('Push error:', err));
+      });
+
+    } catch (e) {
+      console.error('Message send error:', e);
+      socket.emit('error', { message: 'Send failed' });
     }
-
-    // Always send push notification if subscription exists
-    const subResult = await pool.query('SELECT push_subscription FROM users WHERE id = $1', [data.receiverId]);
-    if (subResult.rows[0]?.push_subscription) {
-      webpush.sendNotification(
-        subResult.rows[0].push_subscription,
-        JSON.stringify({
-          title: 'New Message',
-          body: `${socket.user.username}: ${data.content.substring(0, 30)}...`,
-          icon: '/icon-192x192.png'
-        })
-      ).catch(err => console.error('Push notification error:', err));
-    }
-
-  } catch (e) {
-    console.error('Message send error:', e);
-    socket.emit('error', { message: 'Send failed' });
-  }
-});
-
+  });
 
   socket.on('disconnect', () => {
     userSockets.delete(socket.user.id);
   });
 });
 
+// Serve frontend
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
 
 // START SERVER
 server.listen(PORT, '0.0.0.0', () => {
