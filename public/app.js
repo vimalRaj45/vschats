@@ -16,13 +16,12 @@ const usersList = document.getElementById('usersList');
 const messagesDiv = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
-const testPushBtn = document.getElementById('testPushBtn');
 
 let isLogin = true;
 
 // Toggle Login/Register Form
 function toggleForm(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   isLogin = !isLogin;
   authTitle.textContent = isLogin ? 'Login' : 'Register';
   authBtn.textContent = isLogin ? 'Login' : 'Register';
@@ -30,10 +29,13 @@ function toggleForm(e) {
   toggleAuth.innerHTML = isLogin
     ? 'Don\'t have an account? <a href="#" id="switchForm">Register</a>'
     : 'Already have an account? <a href="#" id="switchForm">Login</a>';
-  document.getElementById('switchForm').addEventListener('click', toggleForm);
+  
+  const newSwitch = document.getElementById('switchForm');
+  if (newSwitch) newSwitch.addEventListener('click', toggleForm);
 }
 
-switchForm.addEventListener('click', toggleForm);
+// Initialize toggle listener
+if (switchForm) switchForm.addEventListener('click', toggleForm);
 
 // Auth Submit
 authBtn.addEventListener('click', async () => {
@@ -92,7 +94,7 @@ authBtn.addEventListener('click', async () => {
     } else {
       alert('Registration successful! Please login.');
       isLogin = true;
-      toggleForm({ preventDefault: () => {} });
+      toggleForm();
     }
 
   } catch (err) {
@@ -166,16 +168,6 @@ sendBtn.addEventListener('click', () => {
 messageInput.addEventListener('keypress', e => {
   if (e.key === 'Enter') sendBtn.click();
 });
-
-// Test Push Notification
-function testPush() {
-  Notification.requestPermission().then(perm => {
-    if (perm === 'granted') new Notification('Test!');
-  });
-}
-
-testPushBtn.addEventListener('click', testPush);
-window.testPush = testPush;
 
 // Utility: VAPID
 function urlBase64ToUint8Array(base64String) {
