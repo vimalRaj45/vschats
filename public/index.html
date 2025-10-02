@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { height: 100vh; display: flex; }
+    .auth-form { width: 100%; max-width: 400px; margin: auto; padding: 20px; }
+    .chat-container { display: none; width: 100%; height: 100%; }
+    .active { display: flex !important; }
+    .users-panel { width: 250px; border-right: 1px solid #eee; overflow-y: auto; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; }
+    .messages { flex: 1; padding: 20px; overflow-y: auto; }
+    .message { max-width: 70%; padding: 10px; margin-bottom: 10px; border-radius: 10px; }
+    .own { background: #007bff; color: white; margin-left: auto; }
+    .other { background: #f1f1f1; }
+    .input-area { padding: 15px; border-top: 1px solid #eee; }
+    input, button { padding: 10px; margin: 5px; width: 100%; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { opacity: 0.9; }
+    .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .user-item:hover { background: #f9f9f9; }
+    .selected { background: #e9ecef; }
+    .online-indicator { width: 10px; height: 10px; background: green; border-radius: 50%; display: inline-block; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <!-- AUTH SECTION -->
+  <div id="authSection" class="auth-form">
+    <h2 id="authTitle">Login</h2>
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <input type="text" id="username" placeholder="Username" style="display:none;">
+    <button id="authBtn">Login</button>
+    <p id="toggleAuth">Don't have an account? <a href="#" id="switchForm">Register</a></p>
+  </div>
+
+  <!-- CHAT SECTION -->
+  <div id="chatSection" class="chat-container">
+    <div class="users-panel" id="usersList"></div>
+    <div class="chat-area">
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+        <button id="sendBtn" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXTERNAL SCRIPTS (NO INLINE SCRIPTS) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
