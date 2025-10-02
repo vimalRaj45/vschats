@@ -1,11 +1,14 @@
 self.addEventListener('push', function(event) {
   const data = event.data.json();
   const options = {
-    body: data.body,
-    icon: data.icon || '/icon-192x192.png',
+    body: data.body || 'You have a new message',
+    icon: '/icon-192x192.png',
+    badge: '/icon-72x72.png',
      data
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Chat App', options)
+  );
 });
 
 self.addEventListener('notificationclick', function(event) {
