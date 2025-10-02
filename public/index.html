@@ -3,30 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat App</title>
-  <link rel="icon" href="/icon-192x192.png">
+  <title>VS Chat App</title>
   <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#007bff">
+
+  <link rel="icon" href="/icon-192x192.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     body { height: 100vh; display: flex; flex-direction: column; }
-    .auth-form { width: 100%; max-width: 400px; margin: auto; padding: 20px; }
-    .chat-container { display: none; flex: 1; overflow: hidden; }
+
+    /* AUTH FORM */
+    .auth-form {
+      width: 90%;
+      max-width: 400px;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fefefe;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .auth-form h2 { margin-bottom: 15px; text-align: center; color: #007bff; }
+    .auth-form input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    .auth-form button { width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    .auth-form button:hover { opacity: 0.9; }
+    .auth-form p { margin-top: 10px; text-align: center; font-size: 14px; }
+    .auth-form a { color: #007bff; text-decoration: none; }
+    .auth-form a:hover { text-decoration: underline; }
+
+    /* CHAT CONTAINER */
+    .chat-container { display: none; flex: 1; height: 100%; flex-direction: row; overflow: hidden; }
     .active { display: flex !important; }
-    .users-panel { width: 250px; border-right: 1px solid #eee; overflow-y: auto; }
-    .chat-area { flex: 1; display: flex; flex-direction: column; }
-    .messages { flex: 1; padding: 10px; overflow-y: auto; }
-    .message { max-width: 70%; padding: 10px; margin-bottom: 10px; border-radius: 10px; word-break: break-word; }
+
+    /* USERS PANEL */
+    .users-panel {
+      width: 30%;
+      max-width: 250px;
+      min-width: 150px;
+      border-right: 1px solid #eee;
+      overflow-y: auto;
+      background: #f8f9fa;
+    }
+    .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; }
+    .user-item:hover { background: #e9ecef; }
+    .selected { background: #d0ebff; }
+    .online-indicator { width: 10px; height: 10px; background: green; border-radius: 50%; display: inline-block; margin-right: 10px; }
+
+    /* CHAT AREA */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #f1f1f1;
+    }
+    .message {
+      max-width: 70%;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 15px;
+      word-wrap: break-word;
+    }
     .own { background: #007bff; color: white; margin-left: auto; }
-    .other { background: #f1f1f1; }
-    .input-area { display: flex; padding: 10px; border-top: 1px solid #eee; }
-    .input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 5px; }
-    .input-area button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    .input-area button:disabled { background: #ccc; cursor: not-allowed; }
-    .user-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; }
-    .user-item:hover { background: #f9f9f9; }
-    .selected { background: #e9ecef; }
-    .online-indicator { width: 10px; height: 10px; background: green; border-radius: 50%; display: inline-block; margin-right: 8px; }
-    #installBtn { position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 5px; z-index: 1000; cursor: pointer; display: none; }
+    .other { background: #fff; color: #333; }
+
+    /* INPUT AREA */
+    .input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    .input-area button {
+      padding: 12px 20px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .input-area button:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .chat-container { flex-direction: column; }
+      .users-panel { width: 100%; max-height: 150px; border-right: none; border-bottom: 1px solid #eee; display: flex; overflow-x: auto; }
+      .user-item { flex: 1 0 auto; text-align: center; border-bottom: none; border-right: 1px solid #eee; }
+      .chat-area { flex: 1; height: calc(100% - 150px); }
+      .messages { padding: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -52,8 +131,6 @@
       </div>
     </div>
   </div>
-
-  <button id="installBtn">Install Chat App</button>
 
   <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
