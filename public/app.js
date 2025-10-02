@@ -70,29 +70,45 @@ authBtn.addEventListener('click', async () => {
       currentUser = data.user;
       
       // Initialize service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => {
-            console.log('Service Worker registered');
-            return reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(data.vapidPublicKey)
-            });
-          })
-          .then(sub => {
-            return fetch('/api/subscribe', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.token}`
-              },
-              body: JSON.stringify({ subscription: sub })
-            });
-          })
-          .catch(err => {
-            console.error('Push setup failed:', err);
-          });
+     // Initialize service worker (FIXED)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(registration => {
+      console.log('✅ Service Worker registered');
+      // Wait for the service worker to be ready
+      return navigator.serviceWorker.ready;
+    })
+    .then(registration => {
+      // Now safely subscribe
+      return registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.vapidPublicKey)
+      });
+    })
+    .then(subscription => {
+      console.log('✅ Push subscription created');
+      return fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${data.token}`
+        },
+        body: JSON.stringify({ subscription })
+      });
+    })
+    .then(() => {
+      console.log('✅ Push subscription saved to server');
+    })
+    .catch(err => {
+      console.error('❌ Push setup failed:', err);
+      // Optional: show user-friendly message
+      if (err.name === 'NotAllowedError') {
+        console.log('User blocked notifications');
+      } else if (err.name === 'AbortError') {
+        console.log('Service Worker not active yet — this should not happen with the fix above');
       }
+    });
+}
       
       // Connect to same origin
       socket = io({
