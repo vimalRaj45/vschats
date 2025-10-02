@@ -40,15 +40,14 @@ const io = socketIo(server, {
 });
 
 // Middleware
-// In server.js - Replace the helmet() middleware with this:
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "http://localhost:5000"], // Allow same origin scripts
-      styleSrc: ["'self'", "'unsafe-inline'"], // Keep inline styles for simplicity
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:5000", "ws://localhost:5000"],
+      connectSrc: ["'self'", "wss:"],
       frameAncestors: ["'none'"]
     }
   }
