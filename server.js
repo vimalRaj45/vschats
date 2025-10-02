@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const webpush = require('web-push');
 const { Pool } = require('pg');
+const path = require('path');
 
 // CONFIGURATION - REPLACE WITH YOUR VALUES
 const VAPID_PUBLIC_KEY = 'BOaLqXqBZn2kkuNwgB5HRVaaf_PpgDhMyXtfnc-7l7Px20sluLtmQxZ1IoE5gZC1g7xLaWTrSTv2-UwxF8dJtAM';
@@ -31,7 +32,6 @@ const pool = new Pool({
     rejectUnauthorized: false, // required for Neon
   },
 });
-
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +56,12 @@ app.use(morgan('combined'));
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+
+// Serve service worker with correct MIME type
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
 
 // JWT Middleware
 const authenticateToken = (req, res, next) => {
@@ -190,17 +196,23 @@ io.on('connection', (socket) => {
           [data.receiverId]
         );
         if (subResult.rows[0]?.push_subscription) {
+          console.log('✅ Sending push notification to user', data.receiverId);
           webpush.sendNotification(
             subResult.rows[0].push_subscription,
             JSON.stringify({
               title: 'New Message',
               body: `${socket.user.username}: ${data.content.substring(0, 30)}...`,
-              icon: '/icon.png'
+              icon: '/icon-192x192.png'
             })
-          ).catch(console.error);
+          ).catch(err => {
+            console.error('❌ Push notification error:', err);
+          });
+        } else {
+          console.log('⚠️ No push subscription for user', data.receiverId);
         }
       }
     } catch (e) {
+      console.error('Message send error:', e);
       socket.emit('error', { message: 'Send failed' });
     }
   });
@@ -210,8 +222,13 @@ io.on('connection', (socket) => {
   });
 });
 
+// Serve frontend for all routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // START SERVER
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
   console.log(`VAPID Public Key: ${VAPID_PUBLIC_KEY}`);
 });
