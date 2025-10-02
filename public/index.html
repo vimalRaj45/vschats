@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat App</title>
+  <link rel="icon" href="/icon-192x192.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     body { height: 100vh; display: flex; }
@@ -27,6 +28,7 @@
   </style>
 </head>
 <body>
+
   <!-- AUTH SECTION -->
   <div id="authSection" class="auth-form">
     <h2 id="authTitle">Login</h2>
@@ -47,10 +49,10 @@
         <button id="sendBtn" disabled>Send</button>
       </div>
     </div>
-    <button onclick="testPush()">Test Push</button>
+    <button id="testPushBtn">Test Push</button>
   </div>
 
-  <!-- EXTERNAL SCRIPTS (NO INLINE SCRIPTS) -->
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
 </body>
