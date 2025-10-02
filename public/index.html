@@ -48,13 +48,6 @@
       </div>
     </div>
     <button onclick="testPush()">Test Push</button>
-<script>
-function testPush() {
-  Notification.requestPermission().then(perm => {
-    if (perm === 'granted') new Notification('Test!');
-  });
-}
-</script>
   </div>
 
   <!-- EXTERNAL SCRIPTS (NO INLINE SCRIPTS) -->
