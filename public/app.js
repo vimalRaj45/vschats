@@ -71,25 +71,31 @@ authBtn.addEventListener('click', async () => {
       
       // Initialize service worker
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
-          return reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(data.vapidPublicKey)
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            console.log('Service Worker registered');
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(data.vapidPublicKey)
+            });
+          })
+          .then(sub => {
+            return fetch('/api/subscribe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`
+              },
+              body: JSON.stringify({ subscription: sub })
+            });
+          })
+          .catch(err => {
+            console.error('Push setup failed:', err);
           });
-        }).then(sub => {
-          return fetch('/api/subscribe', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${data.token}`
-            },
-            body: JSON.stringify({ subscription: sub })
-          });
-        }).catch(console.error);
       }
       
-      // ✅ FIXED: Connect to same origin (no URL needed)
-      socket = io({  // ←←← REMOVED 'http://localhost:5000'
+      // Connect to same origin
+      socket = io({
         auth: { token: data.token }
       });
       
