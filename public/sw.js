@@ -2,7 +2,7 @@ self.addEventListener('push', function(event) {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: data.icon || '/icon.png',
+    icon: data.icon || '/icon-192x192.png',
      data
   };
   event.waitUntil(self.registration.showNotification(data.title, options));
