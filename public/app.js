@@ -219,5 +219,15 @@ if ('Notification' in window) {
   Notification.requestPermission();
 }
 
+
+// app.js
+function testPush() {
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') new Notification('Test!');
+  });
+}
+window.testPush = testPush; // expose to global
+
+
 // Initialize switch form listener
 document.getElementById('switchForm').addEventListener('click', toggleForm);
