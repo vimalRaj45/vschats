@@ -222,10 +222,10 @@ io.on('connection', (socket) => {
   });
 });
 
-// Catch-all route for SPA
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 
 // START SERVER
