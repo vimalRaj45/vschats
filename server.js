@@ -206,10 +206,10 @@ io.on('connection', (socket) => {
   });
 });
 
-// CATCH-ALL ROUTE
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 // START SERVER
 server.listen(PORT, '0.0.0.0', () => {
