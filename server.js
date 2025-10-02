@@ -1,4 +1,4 @@
-// === ALL BACKEND CODE IN ONE FILE ===
+// === FULL BACKEND CODE ===
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -11,7 +11,7 @@ const webpush = require('web-push');
 const { Pool } = require('pg');
 const path = require('path');
 
-// CONFIGURATION - REPLACE WITH YOUR VALUES
+// CONFIG
 const VAPID_PUBLIC_KEY = 'BOaLqXqBZn2kkuNwgB5HRVaaf_PpgDhMyXtfnc-7l7Px20sluLtmQxZ1IoE5gZC1g7xLaWTrSTv2-UwxF8dJtAM';
 const VAPID_PRIVATE_KEY = 'fs_8HvYz9PfJQVVDcT3TUhQh2-ZwD1jhGjHZ9LVNy40';
 const JWT_SECRET = 'supersecret123!@#';
@@ -24,30 +24,25 @@ webpush.setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 
-// ✅ Use NeonDB connection string
+// PostgreSQL (NeonDB) Pool
 const pool = new Pool({
-  connectionString:
-    "postgresql://neondb_owner:npg_ZS1hyJvEkRL9@ep-holy-pond-adhxy251-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
-  ssl: {
-    rejectUnauthorized: false, // required for Neon
-  },
+  connectionString: "postgresql://neondb_owner:npg_ZS1hyJvEkRL9@ep-holy-pond-adhxy251-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+  ssl: { rejectUnauthorized: false }
 });
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: { origin: "*" }
-});
+const io = socketIo(server, { cors: { origin: "*" } });
 
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "wss:"],
+      connectSrc: ["'self'", "wss:", "ws:", "http:", "https:"],
       frameAncestors: ["'none'"]
     }
   }
@@ -57,7 +52,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Serve service worker with correct MIME type
+// Serve service worker
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
@@ -67,7 +62,7 @@ app.get('/sw.js', (req, res) => {
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.sendStatus(401);
-  
+
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
@@ -94,15 +89,15 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (result.rows.length === 0) return res.status(400).json({ error: 'Invalid credentials' });
-    
+    if (!result.rows.length) return res.status(400).json({ error: 'Invalid credentials' });
+
     const user = result.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
-    
+
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
-    res.json({ 
-      token, 
+    res.json({
+      token,
       user: { id: user.id, username: user.username, email: user.email },
       vapidPublicKey: VAPID_PUBLIC_KEY
     });
@@ -111,7 +106,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// PUSH NOTIFICATION ROUTE
+// PUSH NOTIFICATIONS
 app.post('/api/subscribe', authenticateToken, async (req, res) => {
   try {
     await pool.query(
@@ -161,7 +156,6 @@ const userSockets = new Map();
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error('No token'));
-  
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return next(new Error('Invalid token'));
     socket.user = user;
@@ -171,32 +165,26 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   userSockets.set(socket.user.id, socket.id);
-  
+
   socket.on('send_message', async (data) => {
     try {
-      // Save message
       const result = await pool.query(
         'INSERT INTO messages(sender_id, receiver_id, content) VALUES($1, $2, $3) RETURNING *',
         [socket.user.id, data.receiverId, data.content]
       );
-      
       const message = result.rows[0];
-      
+
       // Send to sender
       socket.emit('message', { ...message, sender_name: socket.user.username, isOwn: true });
-      
-      // Send to receiver or push notification
+
+      // Send to receiver
       const receiverSocket = userSockets.get(data.receiverId);
       if (receiverSocket) {
         io.to(receiverSocket).emit('message', { ...message, sender_name: socket.user.username, isOwn: false });
       } else {
-        // Send push notification
-        const subResult = await pool.query(
-          'SELECT push_subscription FROM users WHERE id = $1',
-          [data.receiverId]
-        );
+        // Push notification
+        const subResult = await pool.query('SELECT push_subscription FROM users WHERE id = $1', [data.receiverId]);
         if (subResult.rows[0]?.push_subscription) {
-          console.log('✅ Sending push notification to user', data.receiverId);
           webpush.sendNotification(
             subResult.rows[0].push_subscription,
             JSON.stringify({
@@ -204,11 +192,7 @@ io.on('connection', (socket) => {
               body: `${socket.user.username}: ${data.content.substring(0, 30)}...`,
               icon: '/icon-192x192.png'
             })
-          ).catch(err => {
-            console.error('❌ Push notification error:', err);
-          });
-        } else {
-          console.log('⚠️ No push subscription for user', data.receiverId);
+          ).catch(console.error);
         }
       }
     } catch (e) {
@@ -216,17 +200,16 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Send failed' });
     }
   });
-  
+
   socket.on('disconnect', () => {
     userSockets.delete(socket.user.id);
   });
 });
 
-app.get(/.*/, (req, res) => {
+// CATCH-ALL ROUTE
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-
 
 // START SERVER
 server.listen(PORT, '0.0.0.0', () => {
