@@ -220,12 +220,14 @@ if ('Notification' in window) {
 }
 
 
-// app.js
+document.getElementById('testPushBtn').addEventListener('click', testPush);
+
 function testPush() {
   Notification.requestPermission().then(perm => {
     if (perm === 'granted') new Notification('Test!');
   });
 }
+
 window.testPush = testPush; // expose to global
 
 
