@@ -1,4 +1,3 @@
-// public/app.js
 let currentUser = null;
 let socket = null;
 let selectedUser = null;
@@ -89,8 +88,8 @@ authBtn.addEventListener('click', async () => {
         }).catch(console.error);
       }
       
-      // Connect to socket
-      socket = io('http://localhost:5000', {
+      // ✅ FIXED: Connect to same origin (no URL needed)
+      socket = io({  // ←←← REMOVED 'http://localhost:5000'
         auth: { token: data.token }
       });
       
