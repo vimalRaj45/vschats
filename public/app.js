@@ -16,28 +16,24 @@ const usersList = document.getElementById('usersList');
 const messagesDiv = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
+const installBtn = document.getElementById('installBtn');
 
 let isLogin = true;
-
 let deferredPrompt;
+
+// PWA Install
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-
-  const installBtn = document.createElement('button');
-  installBtn.textContent = 'Install Chat App';
-  document.body.appendChild(installBtn);
-
-  installBtn.addEventListener('click', () => {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(choice => {
-      if (choice.outcome === 'accepted') console.log('App installed');
-      deferredPrompt = null;
-      installBtn.remove();
-    });
-  });
+  installBtn.style.display = 'block';
 });
 
+installBtn.addEventListener('click', async () => {
+  installBtn.style.display = 'none';
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+});
 
 // Toggle Login/Register Form
 function toggleForm(e) {
@@ -53,8 +49,6 @@ function toggleForm(e) {
   const newSwitch = document.getElementById('switchForm');
   if (newSwitch) newSwitch.addEventListener('click', toggleForm);
 }
-
-// Initialize toggle listener
 if (switchForm) switchForm.addEventListener('click', toggleForm);
 
 // Auth Submit
