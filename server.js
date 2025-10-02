@@ -222,10 +222,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// With this ✅
-app.get('/*', (req, res) => {
+// Catch-all route for SPA
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 // START SERVER
 server.listen(PORT, '0.0.0.0', () => {
